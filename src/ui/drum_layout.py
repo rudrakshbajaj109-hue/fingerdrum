@@ -22,14 +22,14 @@ class DrumLayout:
     """Provide the eight drum pad definitions and their live-camera positions."""
 
     _PADS: Final[tuple[DrumPad, ...]] = (
-        DrumPad("KICK", (0, 145, 255)),
-        DrumPad("SNARE", (255, 150, 70)),
-        DrumPad("HI-HAT", (0, 235, 255)),
-        DrumPad("CLAP", (255, 255, 255)),
-        DrumPad("TOM 1", (85, 220, 90)),
-        DrumPad("TOM 2", (70, 70, 245)),
-        DrumPad("CRASH", (255, 255, 0)),
-        DrumPad("RIDE", (215, 105, 190)),
+        DrumPad("KICK", (72, 145, 232)),
+        DrumPad("SNARE", (194, 126, 222)),
+        DrumPad("HI-HAT", (105, 204, 218)),
+        DrumPad("CLAP", (198, 210, 224)),
+        DrumPad("TOM 1", (105, 190, 157)),
+        DrumPad("TOM 2", (115, 157, 224)),
+        DrumPad("CRASH", (105, 188, 236)),
+        DrumPad("RIDE", (176, 148, 215)),
     )
 
     @property
@@ -38,21 +38,50 @@ class DrumLayout:
         return self._PADS
 
     def pad_regions(self, frame_size: tuple[int, int]) -> dict[str, PadRegion]:
-        """Return pad centers and radii directly in webcam pixel coordinates."""
-        frame_width, frame_height = frame_size
-        columns, rows = 4, 2
-        content_top, content_bottom = 140, 26
-        cell_width = frame_width // columns
-        cell_height = max((frame_height - content_top - content_bottom) // rows, 1)
-        radius = max(12, int(min(cell_width, cell_height) * 0.24))
+      """Compact drum kit layout — tighter grouping, lower on screen."""
 
-        return {
-            pad.label: (
-                (
-                    cell_width * (index % columns) + cell_width // 2,
-                    content_top + cell_height * (index // columns) + cell_height // 2 + 12,
-                ),
-                radius,
-            )
-            for index, pad in enumerate(self._PADS)
-        }
+      frame_width, frame_height = frame_size
+
+      base_radius = int(min(frame_width, frame_height) * 0.068)
+
+      return {
+          "CRASH": (
+              (int(frame_width * 0.40), int(frame_height * 0.34)),
+              int(base_radius * 0.90),
+          ),
+
+          "RIDE": (
+              (int(frame_width * 0.60), int(frame_height * 0.34)),
+              int(base_radius * 0.90),
+          ),
+
+          "HI-HAT": (
+              (int(frame_width * 0.31), int(frame_height * 0.50)),
+              int(base_radius * 0.95),
+          ),
+
+          "TOM 1": (
+              (int(frame_width * 0.45), int(frame_height * 0.49)),
+              base_radius,
+          ),
+
+          "TOM 2": (
+              (int(frame_width * 0.55), int(frame_height * 0.49)),
+              base_radius,
+          ),
+
+          "SNARE": (
+              (int(frame_width * 0.40), int(frame_height * 0.65)),
+              int(base_radius * 1.10),
+          ),
+
+          "CLAP": (
+              (int(frame_width * 0.58), int(frame_height * 0.64)),
+              int(base_radius * 0.90),
+          ),
+
+          "KICK": (
+              (int(frame_width * 0.50), int(frame_height * 0.82)),
+              int(base_radius * 1.35),
+          ),
+      }

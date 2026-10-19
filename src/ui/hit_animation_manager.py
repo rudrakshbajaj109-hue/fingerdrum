@@ -15,7 +15,7 @@ class _PadFlash:
 class HitAnimationManager:
     """Track short, non-blocking pad flashes created by real hit events."""
 
-    FLASH_DURATION = 0.15
+    FLASH_DURATION = 0.28
 
     def __init__(self) -> None:
         self._flashes: dict[str, _PadFlash] = {}

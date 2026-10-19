@@ -15,9 +15,8 @@ Fingertips: TypeAlias = list[list[Landmark]]
 
 
 class HandTracker:
-    """Detect only the RIGHT hand index finger."""
+    """Detect only the index fingertip for up to two hands."""
 
-    # Only Index Finger
     FINGERTIP_IDS: Final[tuple[int, ...]] = (8,)
 
     HAND_CONNECTIONS: Final[tuple[tuple[int, int], ...]] = (
@@ -29,11 +28,6 @@ class HandTracker:
         (0, 17),
     )
 
-    # Only one colour because only one fingertip is drawn
-    _FINGERTIP_COLORS: Final[tuple[tuple[int, int, int], ...]] = (
-        (0, 255, 255),
-    )
-
     DEFAULT_MODEL_PATH: Final[Path] = (
         Path(__file__).resolve().parents[2]
         / "assets"
@@ -43,7 +37,7 @@ class HandTracker:
     def __init__(
         self,
         model_path: str | Path | None = None,
-        num_hands: int = 1,
+        num_hands: int = 2,
         detection_confidence: float = 0.6,
         presence_confidence: float = 0.6,
         tracking_confidence: float = 0.6,
@@ -80,50 +74,51 @@ class HandTracker:
         )
 
     def process_frame(
-      self,
-      frame: np.ndarray,
-      timestamp_ms: int,) -> tuple[np.ndarray, Fingertips]:
+        self,
+        frame: np.ndarray,
+        timestamp_ms: int,
+    ) -> tuple[np.ndarray, Fingertips]:
 
-      rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-      image = mp.Image(
-          image_format=mp.ImageFormat.SRGB,
-          data=np.ascontiguousarray(rgb_frame),
-    )
+        image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=np.ascontiguousarray(rgb_frame),
+        )
 
-      result = self._landmarker.detect_for_video(image, timestamp_ms)
+        result = self._landmarker.detect_for_video(image, timestamp_ms)
 
-      annotated_frame = frame.copy()
+        # The app draws its interface on a separate copy. Avoid allocating a
+        # second full-resolution image when landmark drawing is disabled.
+        annotated_frame = frame.copy() if self._draw_landmarks else frame
 
-      frame_height, frame_width = frame.shape[:2]
+        frame_height, frame_width = frame.shape[:2]
 
-      fingertips: Fingertips = []
+        fingertips: Fingertips = []
 
-      if result.hand_landmarks:
+        for hand_landmarks in result.hand_landmarks:
 
-          hand_landmarks = result.hand_landmarks[0]
+            if self._draw_landmarks:
+                self._draw_hand(
+                    annotated_frame,
+                    hand_landmarks,
+                    frame_width,
+                    frame_height,
+                )
 
-          if self._draw_landmarks:
-              self._draw_hand(
-                  annotated_frame,
-                  hand_landmarks,
-                  frame_width,
-                  frame_height,
+            index_tip = hand_landmarks[8]
+
+            fingertips.append(
+                [
+                    (
+                        index_tip.x,
+                        index_tip.y,
+                        index_tip.z,
+                    )
+                ]
             )
 
-          index_tip = hand_landmarks[8]
-
-          fingertips.append(
-              [
-                  (
-                      index_tip.x,
-                      index_tip.y,
-                      index_tip.z,
-                  )
-              ]
-          )
-
-      return annotated_frame, fingertips
+        return annotated_frame, fingertips
 
     def _draw_hand(
         self,
@@ -152,13 +147,13 @@ class HandTracker:
             cv2.circle(
                 frame,
                 point,
-                4,
+                3,
                 (0, 180, 255),
                 cv2.FILLED,
                 cv2.LINE_AA,
             )
 
-        # Draw only index finger
+        # Highlight only the index fingertip
         cv2.circle(
             frame,
             points[8],
@@ -185,3 +180,4 @@ class HandTracker:
 
     def __exit__(self, *_: object) -> None:
         self.close()
+        

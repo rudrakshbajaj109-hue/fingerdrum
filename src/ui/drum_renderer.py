@@ -14,8 +14,8 @@ from .hit_animation_manager import HitAnimationManager
 class DrumRenderer:
     """Render on-camera pads with hover readiness and confirmed-hit flashes."""
 
-    _HOVER_SCALE = 1.08
-    _FLASH_SCALE = 1.12
+    _HOVER_SCALE = 1.045
+    _FLASH_SCALE = 1.075
 
     def __init__(self, layout: DrumLayout, animations: HitAnimationManager) -> None:
         self._layout = layout
@@ -46,19 +46,29 @@ class DrumRenderer:
         flash: float,
     ) -> None:
         """Blend one labelled pad, favouring hit feedback over hover state."""
-        fill_alpha = 0.24 + (0.16 if hovered else 0.0) + 0.48 * flash
-        outline_alpha = 0.68 + 0.30 * max(flash, float(hovered))
-        self._blend_circle(frame, center, radius, color, min(fill_alpha, 0.92), cv2.FILLED)
-        self._blend_circle(frame, center, radius, color, min(outline_alpha, 1.0), 2)
-        if hovered and flash == 0.0:
-            self._blend_circle(frame, center, radius + 6, color, 0.45, 2)
-        if flash > 0.0:
-            self._blend_circle(frame, center, radius + 8, (255, 255, 255), 0.55 * flash, 3)
+        response = max(float(hovered), flash)
+        self._blend_circle(frame, center, radius + 5, (10, 14, 21), 0.62, cv2.FILLED)
+        self._blend_circle(frame, center, radius, (18, 24, 34), 0.76, cv2.FILLED)
+        self._blend_circle(frame, center, radius, color, 0.13 + 0.17 * response, cv2.FILLED)
+        self._blend_circle(frame, center, radius, color, 0.62 + 0.36 * response, 2)
+        self._blend_circle(frame, center, max(radius - 6, 1), (220, 228, 238), 0.20, 1)
 
-        text_scale = 0.52 if radius < 60 else 0.62
+        if response > 0:
+            self._blend_circle(frame, center, radius + 9, color, 0.42 * response, 2)
+
+        text_scale = max(0.42, min(0.62, radius / 100))
         text_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_DUPLEX, text_scale, 1)
         text_origin = center[0] - text_size[0] // 2, center[1] + text_size[1] // 2
-        cv2.putText(frame, label, text_origin, cv2.FONT_HERSHEY_DUPLEX, text_scale, (250, 250, 250), 1, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            label,
+            text_origin,
+            cv2.FONT_HERSHEY_DUPLEX,
+            text_scale,
+            (238, 242, 248),
+            1,
+            cv2.LINE_AA,
+        )
 
     @staticmethod
     def _contains(center: tuple[int, int], radius: int, point: tuple[float, float]) -> bool:
